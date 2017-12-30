@@ -63,7 +63,7 @@ public class TransformHandler : HandlerRuntimeBase
         if( _parms.HasXslTransformations )
             foreach( string xslt in _parms.XslTransformations )
             {
-                OnProgress( "TransformAndConvert", $"Beginning XslTransformation: {xslt}" );
+                OnProgress( "TransformYamlJson", $"Beginning XslTransformation: {xslt}" );
                 string xform = Transform( xslt, data );
                 Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
 
@@ -79,10 +79,10 @@ public class TransformHandler : HandlerRuntimeBase
 
         if( _config.HasConvert )
         {
-            OnProgress( "TransformAndConvert", $"Beginning ConvertToFormat: {_config.ToString()}" );
+            OnProgress( "TransformYamlJson->HasConvert", $"Beginning ConvertToFormat: {_config.ToString()}" );
             string buf = scutils.YamlHelpers.Serialize( result, serializeAsJson: _config.InputTypeIsJson );
             buf = WrapperUtility.ConvertToFormat( _config.InputType, buf, _config.OutputType );
-            OnProgress( "TransformAndConvert", $"Completed ConvertToFormat: {_config.ToString()}" );
+            OnProgress( "TransformYamlJson->HasConvert", $"Completed ConvertToFormat: {_config.ToString()}" );
 
             return buf;
         }
@@ -105,7 +105,7 @@ public class TransformHandler : HandlerRuntimeBase
         if( _parms.HasXslTransformations )
             foreach( string xslt in _parms.XslTransformations )
             {
-                OnProgress( "TransformAndConvert", $"Beginning XslTransformation: {xslt}" );
+                OnProgress( "TransformXml", $"Beginning XslTransformation: {xslt}" );
                 string xform = Transform( xslt, data );
                 XmlDocument patch = scutils.XmlHelpers.Deserialize<XmlDocument>( xform );
 
@@ -121,10 +121,10 @@ public class TransformHandler : HandlerRuntimeBase
 
         if( _config.HasConvert )
         {
-            OnProgress( "TransformAndConvert", $"Beginning ConvertToFormat: {_config.ToString()}" );
+            OnProgress( "TransformXml->HasConvert", $"Beginning ConvertToFormat: {_config.ToString()}" );
             string buf = scutils.XmlHelpers.Serialize<XmlDocument>( result );
             buf = WrapperUtility.ConvertToFormat( _config.InputType, buf, _config.OutputType );
-            OnProgress( "TransformAndConvert", $"Completed ConvertToFormat: {_config.ToString()}" );
+            OnProgress( "TransformXml->HasConvert", $"Completed ConvertToFormat: {_config.ToString()}" );
 
             return buf;
         }
@@ -141,9 +141,9 @@ public class TransformHandler : HandlerRuntimeBase
     {
         if( !string.IsNullOrWhiteSpace( xslt ) )
         {
-            OnProgress( "TransformAndConvert", "Beginning Transform" );
+            OnProgress( "Transform", "Beginning Transform" );
             data = WrapperUtility.Transform( _config.InputType, data, xslt );
-            OnProgress( "TransformAndConvert", "Completed Transform" );
+            OnProgress( "Transform", "Completed Transform" );
         }
 
         return data;
