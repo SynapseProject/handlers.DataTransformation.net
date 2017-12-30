@@ -102,13 +102,21 @@ public class TransformHandler : HandlerRuntimeBase
         bool isDoc = _parms.Data is XmlDocument;
         string data = _parms.Data is string ? (string)_parms.Data : scutils.XmlHelpers.Serialize<object>( _parms.Data );
 
-        foreach( string xslt in _parms.XslTransformations )
-        {
-            OnProgress( "TransformAndConvert", $"Beginning XslTransformation: {xslt}" );
-            string xform = Transform( xslt, data );
-            XmlDocument patch = scutils.XmlHelpers.Deserialize<XmlDocument>( xform );
+        if( _parms.HasXslTransformations )
+            foreach( string xslt in _parms.XslTransformations )
+            {
+                OnProgress( "TransformAndConvert", $"Beginning XslTransformation: {xslt}" );
+                string xform = Transform( xslt, data );
+                XmlDocument patch = scutils.XmlHelpers.Deserialize<XmlDocument>( xform );
 
-            scutils.XmlHelpers.Merge( ref result, patch );
+                scutils.XmlHelpers.Merge( ref result, patch );
+            }
+        else
+        {
+            if( isDoc )
+                result = (XmlDocument)_parms.Data;
+            else
+                result = scutils.XmlHelpers.Deserialize<XmlDocument>( data );
         }
 
         if( _config.HasConvert )
@@ -146,8 +154,7 @@ public class TransformHandler : HandlerRuntimeBase
         return new TransformConfig()
         {
             InputType = FormatType.Json,
-            OutputType = FormatType.Yaml,
-            
+            OutputType = FormatType.Yaml
         };
     }
 
