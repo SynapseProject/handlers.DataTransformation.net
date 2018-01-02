@@ -61,10 +61,10 @@ public class TransformHandler : HandlerRuntimeBase
         string data = _parms.Data is string ? (string)_parms.Data : scutils.YamlHelpers.Serialize( _parms.Data, serializeAsJson: _config.InputTypeIsJson );
 
         if( _parms.HasXslTransformations )
-            foreach( string xslt in _parms.XslTransformations )
+            foreach( Transformation t in _parms.XslTransformations )
             {
-                OnProgress( "TransformYamlJson", $"Beginning XslTransformation: {xslt}" );
-                string xform = Transform( xslt, data );
+                OnProgress( "TransformYamlJson", $"Beginning XslTransformation: {t}" );
+                string xform = Transform( t.Xslt, data, t.PreserveOutputAsIs );
                 Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
 
                 scutils.YamlHelpers.Merge( ref result, patch );
@@ -103,10 +103,10 @@ public class TransformHandler : HandlerRuntimeBase
         string data = _parms.Data is string ? (string)_parms.Data : scutils.XmlHelpers.Serialize<object>( _parms.Data );
 
         if( _parms.HasXslTransformations )
-            foreach( string xslt in _parms.XslTransformations )
+            foreach( Transformation t in _parms.XslTransformations )
             {
-                OnProgress( "TransformXml", $"Beginning XslTransformation: {xslt}" );
-                string xform = Transform( xslt, data );
+                OnProgress( "TransformXml", $"Beginning XslTransformation: {t}" );
+                string xform = Transform( t.Xslt, data, t.PreserveOutputAsIs );
                 XmlDocument patch = scutils.XmlHelpers.Deserialize<XmlDocument>( xform );
 
                 scutils.XmlHelpers.Merge( ref result, patch );
@@ -137,12 +137,12 @@ public class TransformHandler : HandlerRuntimeBase
         }
     }
 
-    string Transform(string xslt, string data)
+    string Transform(string xslt, string data, bool preserveOutputAsIs)
     {
         if( !string.IsNullOrWhiteSpace( xslt ) )
         {
             OnProgress( "Transform", "Beginning Transform" );
-            data = WrapperUtility.Transform( _config.InputType, data, xslt );
+            data = WrapperUtility.Transform( _config.InputType, data, xslt, preserveOutputAsIs );
             OnProgress( "Transform", "Completed Transform" );
         }
 
@@ -163,10 +163,10 @@ public class TransformHandler : HandlerRuntimeBase
         return new TransformParameters()
         {
             Data = "{ \"Valid\": Data }",
-            XslTransformations = new List<string>()
+            XslTransformations = new List<Transformation>()
             {
-                "<xsl:stylesheet ... >",
-                "<xsl:stylesheet ... >"
+                new Transformation() { Xslt = "<xsl:stylesheet ... >" },
+                new Transformation() { Xslt = "<xsl:stylesheet ... >", PreserveOutputAsIs = false }
             }
         };
     }
@@ -195,7 +195,21 @@ public class TransformParameters
     [YamlIgnore]
     internal bool HasData { get { return Data != null; } }
 
-    public List<string> XslTransformations { get; set; }
+    public List<Transformation> XslTransformations { get; set; }
     [YamlIgnore]
     internal bool HasXslTransformations { get { return XslTransformations?.Count > 0; } }
+}
+
+public class Transformation
+{
+    public string Xslt { get; set; }
+    [YamlIgnore]
+    internal bool HasXslt { get { return Xslt != null; } }
+
+    public bool PreserveOutputAsIs { get; set; } = true;
+
+    public override string ToString()
+    {
+        return $"Xslt: {Xslt}, PreserveOutputAsIs: {PreserveOutputAsIs}";
+    }
 }
