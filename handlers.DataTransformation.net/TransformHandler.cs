@@ -13,6 +13,7 @@ public class TransformHandler : HandlerRuntimeBase
 {
     TransformConfig _config = null;
     TransformParameters _parms = null;
+    bool _isDryRun = false;
 
     public override IHandlerRuntime Initialize(string config)
     {
@@ -27,6 +28,8 @@ public class TransformHandler : HandlerRuntimeBase
     {
         Exception exception = null;
         ExecuteResult result = new ExecuteResult() { Status = StatusType.Success, Message = "Complete" };
+
+        _isDryRun = startInfo.IsDryRun;
 
         try
         {
@@ -61,6 +64,7 @@ public class TransformHandler : HandlerRuntimeBase
         string data = _parms.Data is string ? (string)_parms.Data : scutils.YamlHelpers.Serialize( _parms.Data, serializeAsJson: _config.InputTypeIsJson );
 
         if( _parms.HasXslTransformations )
+        {
             foreach( Transformation t in _parms.XslTransformations )
             {
                 OnProgress( "TransformYamlJson", $"Beginning XslTransformation: {t}" );
@@ -69,6 +73,23 @@ public class TransformHandler : HandlerRuntimeBase
 
                 scutils.YamlHelpers.Merge( ref result, patch );
             }
+            foreach( RegexQuery r in _parms.RegexQueries )
+            {
+                OnProgress( "TransformYamlJson", $"Beginning RegexQuery: {r}" );
+                string xform = ""; // --> RegexHelpers.Match(data, r.Pattern, r.Options, r.Timeout);
+                Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
+
+                scutils.YamlHelpers.Merge( ref result, patch );
+            }
+            //foreach( JsonQuery j in _parms.JsonQueries )
+            //{
+            //    OnProgress( "TransformYamlJson", $"Beginning RegexQuery: {j}" );
+            //    string xform = JsonHelpers.Select( data, j.Expression );
+            //    Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
+
+            //    scutils.YamlHelpers.Merge( ref result, patch );
+            //}
+        }
         else
         {
             if( isDict )
@@ -162,11 +183,15 @@ public class TransformHandler : HandlerRuntimeBase
     {
         return new TransformParameters()
         {
-            Data = "{ \"Valid\": Data }",
+            Data = "{ \"Valid\": \"Data\" }",
             XslTransformations = new List<Transformation>()
             {
                 new Transformation() { Xslt = "<xsl:stylesheet ... >" },
                 new Transformation() { Xslt = "<xsl:stylesheet ... >", PreserveOutputAsIs = false }
+            },
+            RegexQueries = new List<RegexQuery>()
+            {
+                new RegexQuery() { Pattern = @"^\w+[\w-\.]*\@\w+((-\w+)|(\w*))\.[a-z]{2,3}$", ExecuteLineByLine = true, PreserveOutputAsIs = true }
             }
         };
     }
@@ -198,18 +223,41 @@ public class TransformParameters
     public List<Transformation> XslTransformations { get; set; }
     [YamlIgnore]
     internal bool HasXslTransformations { get { return XslTransformations?.Count > 0; } }
+
+    public List<RegexQuery> RegexQueries { get; set; }
+    [YamlIgnore]
+    internal bool HasRegexQueries { get { return RegexQueries?.Count > 0; } }
 }
 
 public class Transformation
 {
     public string Xslt { get; set; }
     [YamlIgnore]
-    internal bool HasXslt { get { return Xslt != null; } }
+    internal bool HasXslt { get { return !string.IsNullOrWhiteSpace( Xslt ); } }
 
     public bool PreserveOutputAsIs { get; set; } = true;
 
     public override string ToString()
     {
         return $"Xslt: {Xslt}, PreserveOutputAsIs: {PreserveOutputAsIs}";
+    }
+}
+
+public class RegexQuery
+{
+    public string Pattern { get; set; }
+    [YamlIgnore]
+    internal bool HasPattern { get { return !string.IsNullOrWhiteSpace( Pattern ); } }
+
+    //regexoptions = set default here too
+    //timeout = set a default of "infiinte"
+
+    public bool ExecuteLineByLine { get; set; } = true;
+
+    public bool PreserveOutputAsIs { get; set; } = true;
+
+    public override string ToString()
+    {
+        return $"Expression: {Pattern}, ExecuteLineByLine: {ExecuteLineByLine}, PreserveOutputAsIs: {PreserveOutputAsIs}";
     }
 }
