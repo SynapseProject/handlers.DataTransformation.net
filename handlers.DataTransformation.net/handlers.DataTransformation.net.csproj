@@ -53,8 +53,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Classes\TransformConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TransformHandler.cs" />
+    <Compile Include="Classes\TransformHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
