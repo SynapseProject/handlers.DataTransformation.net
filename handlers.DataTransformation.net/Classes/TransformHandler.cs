@@ -63,24 +63,27 @@ public class TransformHandler : HandlerRuntimeBase
         bool isDict = _parms.Data is Dictionary<object, object>;
         string data = _parms.Data is string ? (string)_parms.Data : scutils.YamlHelpers.Serialize( _parms.Data, serializeAsJson: _config.InputTypeIsJson );
 
-        if( _parms.HasXslTransformations )
+        if( _parms.HasTransformations )
         {
-            foreach( Transformation t in _parms.XslTransformations )
-            {
-                OnProgress( "TransformYamlJson", $"Beginning XslTransformation: {t}" );
-                string xform = Transform( t.Xslt, data, t.PreserveOutputAsIs );
-                Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
+            if( _parms.HasXslTransformations )
+                foreach( Transformation t in _parms.XslTransformations )
+                {
+                    OnProgress( "TransformYamlJson", $"Beginning XslTransformation: {t}" );
+                    string xform = Transform( t.Xslt, data, t.PreserveOutputAsIs );
+                    Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
 
-                scutils.YamlHelpers.Merge( ref result, patch );
-            }
-            foreach( RegexQuery r in _parms.RegexQueries )
-            {
-                OnProgress( "TransformYamlJson", $"Beginning RegexQuery: {r}" );
-                string xform = ""; // --> RegexHelpers.Match(data, r.Pattern, r.Options, r.Timeout);
-                Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
+                    scutils.YamlHelpers.Merge( ref result, patch );
+                }
+            if( _parms.HasRegexQueries )
+                foreach( RegexQuery r in _parms.RegexQueries )
+                {
+                    OnProgress( "TransformYamlJson", $"Beginning RegexQuery: {r}" );
+                    string xform = ""; // --> RegexHelpers.Match(data, r.Pattern, r.Options, r.Timeout);
+                    Dictionary<object, object> patch = scutils.YamlHelpers.Deserialize( xform );
 
-                scutils.YamlHelpers.Merge( ref result, patch );
-            }
+                    scutils.YamlHelpers.Merge( ref result, patch );
+                }
+            //if( _parms.HasJsonQueries )
             //foreach( JsonQuery j in _parms.JsonQueries )
             //{
             //    OnProgress( "TransformYamlJson", $"Beginning RegexQuery: {j}" );
@@ -123,15 +126,18 @@ public class TransformHandler : HandlerRuntimeBase
         bool isDoc = _parms.Data is XmlDocument;
         string data = _parms.Data is string ? (string)_parms.Data : scutils.XmlHelpers.Serialize<object>( _parms.Data );
 
-        if( _parms.HasXslTransformations )
-            foreach( Transformation t in _parms.XslTransformations )
-            {
-                OnProgress( "TransformXml", $"Beginning XslTransformation: {t}" );
-                string xform = Transform( t.Xslt, data, t.PreserveOutputAsIs );
-                XmlDocument patch = scutils.XmlHelpers.Deserialize<XmlDocument>( xform );
+        if( _parms.HasTransformations )
+        {
+            if( _parms.HasXslTransformations )
+                foreach( Transformation t in _parms.XslTransformations )
+                {
+                    OnProgress( "TransformXml", $"Beginning XslTransformation: {t}" );
+                    string xform = Transform( t.Xslt, data, t.PreserveOutputAsIs );
+                    XmlDocument patch = scutils.XmlHelpers.Deserialize<XmlDocument>( xform );
 
-                scutils.XmlHelpers.Merge( ref result, patch );
-            }
+                    scutils.XmlHelpers.Merge( ref result, patch );
+                }
+        }
         else
         {
             if( isDoc )
@@ -203,6 +209,10 @@ public class TransformParameters
     public object Data { get; set; }
     [YamlIgnore]
     internal bool HasData { get { return Data != null; } }
+
+    [YamlIgnore]
+    internal bool HasTransformations { get { return HasXslTransformations || HasRegexQueries; } } // --> || HasJsonQueries
+
 
     public List<Transformation> XslTransformations { get; set; }
     [YamlIgnore]
